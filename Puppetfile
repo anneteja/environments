@@ -23,6 +23,9 @@ mod 'puppetlabs-apt',
 mod 'testrepo',
    :git => 'https://github.com/anneteja/testrepo.git',
    :ref => 'master'
+mod 'apache',
+   :git => 'https://github.com/anneteja/apache.git',
+   :ref => 'production'
 mod 'jeff1evesque-cis_benchmark', '0.1.3'
 mod 'wazuh-ossec', '2.0.22'
 # A module from Github pre-packaged tarball
