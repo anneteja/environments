@@ -1,32 +1,39 @@
-pipeline {
-    agent any
+node {
+  deleteDir()
+  checkout scm
+  echo 'beginnning workflow...'
 
-    stages {
-        stage ('Compile Stage') {
+  stage 'prepare gems'
+  sh '''#!/bin/bash
+  source ~/.rvm/scripts/rvm
+  bundle install --path=.bundle/gems/
+  '''
 
-            steps {
-                withMaven(maven : 'maven_3_5_0') {
-                    sh 'mvn clean compile'
-                }
-            }
-        }
+  stage 'syntax testing'
+  sh '''#!/bin/bash
+  source ~/.rvm/scripts/rvm
+  bundle exec puppet parser validate manifests/
+  '''
 
-        stage ('Testing Stage') {
+  stage 'lint testing'
+  sh '''#!/bin/bash
+  source ~/.rvm/scripts/rvm
+  bundle exec bundle exec puppet-lint --no-autoloader_layout-check manifests/*.pp
+  '''
 
-            steps {
-                withMaven(maven : 'maven_3_5_0') {
-                    sh 'mvn test'
-                }
-            }
-        }
+  stage 'rspec testing'
+  sh '''#!/bin/bash
+  source ~/.rvm/scripts/rvm
+  bundle exec rake spec
+  '''
 
+  stage 'smoke testing'
+  sh '''#!/bin/bash
+  source ~/.rvm/scripts/rvm
+  bundle exec rake spec_prep
+  puppet apply tests/init.pp --noop --modulepath=spec/fixtures/modules
+  '''
 
-        stage ('Deployment Stage') {
-            steps {
-                withMaven(maven : 'maven_3_5_0') {
-                    sh 'mvn deploy'
-                }
-            }
-        }
-    }
+  stage 'deploy'
+  echo 'deploy to puppet masters'
 }
