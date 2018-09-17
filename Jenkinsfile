@@ -1,41 +1,32 @@
-node {
-  deleteDir()
-  checkout scm
-  echo 'beginnning workflow...'
+pipeline {
+    agent any
 
-  stage 'prepare gems'
-  sh '''#!/bin/bash
-  source ~/.rvm/scripts/rvm
-  bundle install --path=.bundle/gems/
-  '''
+    stages {
+        stage ('Compile Stage') {
 
-  stage 'syntax testing'
-  sh '''#!/bin/bash
-  source ~/.rvm/scripts/rvm
-  bundle exec puppet parser validate manifests/
-  '''
+            steps {
+                withMaven(maven : 'maven_3_5_0') {
+                    sh 'mvn clean compile'
+                }
+            }
+        }
 
-  stage 'lint testing'
-  sh '''#!/bin/bash
-  source ~/.rvm/scripts/rvm
-  bundle exec bundle exec puppet-lint --no-autoloader_layout-check manifests/*.pp
-  '''
+        stage ('Testing Stage') {
 
-  stage 'rspec testing'
-  sh '''#!/bin/bash
-  source ~/.rvm/scripts/rvm
-  bundle exec rake spec
-  '''
+            steps {
+                withMaven(maven : 'maven_3_5_0') {
+                    sh 'mvn test'
+                }
+            }
+        }
 
-  stage 'smoke testing'
-  sh '''#!/bin/bash
-  source ~/.rvm/scripts/rvm
-  bundle exec rake spec_prep
-  puppet apply tests/init.pp --noop --modulepath=spec/fixtures/modules
-  '''
 
-  stage 'deploy'
-  echo 'deploy to puppet masters'
+        stage ('Deployment Stage') {
+            steps {
+                withMaven(maven : 'maven_3_5_0') {
+                    sh 'mvn deploy'
+                }
+            }
+        }
+    }
 }
-
-checkout([$class: 'GitSCM', branches: [[name: '*/master']], doGenerateSubmoduleConfigurations: false, extensions: [], submoduleCfg: [], userRemoteConfigs: [[url: 'git@github.com:anneteja/environments.git']]])
